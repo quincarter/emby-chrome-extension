@@ -166,6 +166,11 @@ export const requestMovie = async (
       response.status,
       errorBody,
     );
+    if (errorBody.toLowerCase().includes("csrf")) {
+      console.error(
+        `[Media Connector] ⚠️ CSRF error detected! Please disable CSRF protection in your Jellyseerr settings:\n  → ${baseUrl}/settings/network\n  Uncheck \"Enable CSRF Protection\" and save.`,
+      );
+    }
     throw new Error(
       `Jellyseerr request failed (${response.status}): ${errorBody}`,
     );
@@ -235,6 +240,11 @@ export const requestTvShow = async (
       response.status,
       errorBody,
     );
+    if (errorBody.toLowerCase().includes("csrf")) {
+      console.error(
+        `[Media Connector] ⚠️ CSRF error detected! Please disable CSRF protection in your Jellyseerr settings:\n  → ${baseUrl}/settings/network\n  Uncheck \"Enable CSRF Protection\" and save.`,
+      );
+    }
     throw new Error(
       `Jellyseerr request failed (${response.status}): ${errorBody}`,
     );

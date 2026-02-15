@@ -270,6 +270,7 @@ const handleRequestMedia = async (message: RequestMediaMessage) => {
     };
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "Unknown error";
+    const isCsrf = errMsg.toLowerCase().includes("csrf");
     console.error(
       "[Media Connector] Request failed:",
       "\n  Server:",
@@ -277,11 +278,19 @@ const handleRequestMedia = async (message: RequestMediaMessage) => {
       "\n  Error:",
       errMsg,
     );
+    if (isCsrf) {
+      console.error(
+        `[Media Connector] ⚠️ CSRF error! Disable CSRF protection at: ${resolvedJellyseerrUrl}/settings/network`,
+      );
+    }
+    const csrfHint = isCsrf
+      ? `\n\n💡 Fix: Go to ${resolvedJellyseerrUrl}/settings/network and disable "Enable CSRF Protection".`
+      : "";
     return {
       type: "REQUEST_MEDIA_RESPONSE",
       payload: {
         success: false,
-        message: `[${resolvedJellyseerrUrl}] ${errMsg}`,
+        message: `[${resolvedJellyseerrUrl}] ${errMsg}${csrfHint}`,
       },
     };
   }

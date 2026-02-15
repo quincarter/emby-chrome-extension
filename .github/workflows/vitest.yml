@@ -25,3 +25,17 @@ jobs:
 
       - name: Run Vitest
         run: yarn test:unit:coverage
+
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npx tsx scripts/generate-coverage-badges.ts
+
+      - name: Deploy badge to gh-badges branch
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./coverage/badges
+          publish_branch: gh-badges
+          destination_dir: vitest
+          keep_files: true

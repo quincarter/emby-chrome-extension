@@ -26,7 +26,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "gen:icons": "tsx scripts/generate-icons-from-svg.ts",
-    "gen:screenshots": "playwright test e2e/capture-listing-screenshots.spec.ts",
+    "gen:screenshots": "playwright test e2e/capture-listing-screenshots.spec.ts --project=chromium",
     "changeset": "changeset",
     "changeset:publish": "changeset publish && changeset tag",
     "version": "tsx scripts/sync-manifest-version.ts && yarn gen:icons",

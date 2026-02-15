@@ -14,9 +14,9 @@ if (!fs.existsSync(SCREENSHOT_DIR)) {
   fs.mkdirSync(SCREENSHOT_DIR, { recursive: true });
 }
 
-test('capture listing screenshots', async ({ page }) => {
+test('capture listing screenshots', async ({ page, baseURL }) => {
   // 1. Start the dev server
-  await page.goto('http://localhost:5173/sandbox.html');
+  await page.goto(`${baseURL}/sandbox.html`);
   await page.waitForLoadState('networkidle');
 
   // Set the EXACT viewport size required by the store

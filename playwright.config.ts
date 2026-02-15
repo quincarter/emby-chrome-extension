@@ -12,10 +12,20 @@ export default defineConfig({
     trace: 'on-first-retry',
     screenshot: 'on',
   },
+  webServer: {
+    command: 'yarn dev',
+    url: 'http://localhost:5173/sandbox.html',
+    reuseExistingServer: !process.env.CI,
+    stdout: 'ignore',
+    stderr: 'pipe',
+  },
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        baseURL: 'http://localhost:5173',
+      },
     },
   ],
 });

@@ -1,5 +1,11 @@
 # @quincarter/ive-got-this-extension
 
+## 1.0.5
+
+### Patch Changes
+
+- d223e88: adding fix for 404
+
 ## 1.0.4
 
 ### Patch Changes

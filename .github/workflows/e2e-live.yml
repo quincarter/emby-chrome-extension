@@ -1,0 +1,56 @@
+name: Playwright E2E (Live Sites)
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Run weekly on Sundays at 6am UTC to detect site DOM changes
+    - cron: '0 6 * * 0'
+
+permissions:
+  contents: write
+
+jobs:
+  e2e-live:
+    name: Live Site Integration Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build E2E content script bundle
+        run: npx vite build --config vite.config.e2e.ts
+
+      - name: Run live site E2E tests
+        run: npx playwright test --config playwright.live.config.ts
+
+      - name: Generate E2E README from live results
+        if: always()
+        run: npx tsx scripts/generate-e2e-readme.ts --live
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-live
+          path: playwright-report-live/
+          retention-days: 30
+
+      - name: Upload E2E README
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-readme-live
+          path: e2e/README.md
+          retention-days: 30

@@ -1,13 +1,27 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
-import { resolve, dirname } from 'path';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
+import { resolve, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const RESULTS_PATH = resolve(ROOT, 'playwright-report', 'results.json');
+
+const isLive = process.argv.includes('--live');
+const RESULTS_PATH = resolve(
+  ROOT,
+  isLive ? 'playwright-report-live' : 'playwright-report',
+  'results.json',
+);
 const OUTPUT_PATH = resolve(ROOT, 'e2e', 'README.md');
+const SCREENSHOTS_DIR = resolve(ROOT, 'e2e', 'screenshots');
+
+interface Attachment {
+  name: string;
+  contentType: string;
+  path: string;
+}
 
 interface TestResultEntry {
   status: 'passed' | 'failed' | 'timedOut' | 'skipped' | 'interrupted';
+  attachments?: Attachment[];
 }
 
 interface TestEntry {
@@ -55,8 +69,21 @@ const fixtureToSite: Record<string, string> = {
   amazon: 'Amazon',
 };
 
-const collectTests = (suite: Suite): Array<{ group: string; title: string; status: string }> => {
-  const results: Array<{ group: string; title: string; status: string }> = [];
+const slugify = (text: string): string =>
+  text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
+
+const collectTests = (
+  suite: Suite,
+): Array<{ group: string; title: string; status: string; screenshot: string | undefined }> => {
+  const results: Array<{
+    group: string;
+    title: string;
+    status: string;
+    screenshot: string | undefined;
+  }> = [];
 
   const walk = (s: Suite, parentTitle: string): void => {
     const groupTitle = parentTitle ? `${parentTitle} › ${s.title}` : s.title;
@@ -65,11 +92,25 @@ const collectTests = (suite: Suite): Array<{ group: string; title: string; statu
       for (const spec of s.specs) {
         const testEntry = spec.tests[0];
         const status = testEntry?.status ?? 'skipped';
-        results.push({
-          group: groupTitle,
-          title: spec.title,
-          status,
-        });
+
+        // Find screenshot attachment from the last result
+        let screenshot: string | undefined;
+        const lastResult = testEntry?.results?.[testEntry.results.length - 1];
+        const attachment = lastResult?.attachments?.find(
+          (a) =>
+            (a.name === 'screenshot' || a.name === 'viewport') && a.contentType === 'image/png',
+        );
+
+        if (attachment?.path && existsSync(attachment.path)) {
+          mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+          const slug = slugify(`${groupTitle}-${spec.title}`);
+          const destName = `${slug}.png`;
+          const destPath = resolve(SCREENSHOTS_DIR, destName);
+          copyFileSync(attachment.path, destPath);
+          screenshot = `screenshots/${destName}`;
+        }
+
+        results.push({ group: groupTitle, title: spec.title, status, screenshot });
       }
     }
 
@@ -135,6 +176,24 @@ const generate = (): void => {
     }
 
     lines.push('');
+
+    // Add screenshots in a collapsible section
+    const testsWithScreenshots = tests.filter((t) => t.screenshot);
+    if (testsWithScreenshots.length > 0) {
+      lines.push('<details>');
+      lines.push(`<summary>📸 Screenshots (${testsWithScreenshots.length})</summary>`);
+      lines.push('');
+
+      for (const t of testsWithScreenshots) {
+        lines.push(`#### ${t.title}`);
+        lines.push('');
+        lines.push(`![${t.title}](${t.screenshot})`);
+        lines.push('');
+      }
+
+      lines.push('</details>');
+      lines.push('');
+    }
   }
 
   lines.push('---');

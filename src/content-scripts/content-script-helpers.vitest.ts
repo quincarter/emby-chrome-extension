@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { Effect } from 'effect';
-import { buildCheckPayload, buildCheckPayloadEffect } from './content-script-helpers.js';
+import {
+  buildCheckPayload,
+  buildCheckPayloadEffect,
+  getJustWatchPageType,
+} from './content-script-helpers.js';
 import type { DetectedMedia } from '../types/index.js';
 
 describe('buildCheckPayload', () => {
@@ -149,5 +153,40 @@ describe('buildCheckPayloadEffect', () => {
     expect(payload.mediaType).toBe('episode');
     expect(payload.seasonNumber).toBe(5);
     expect(payload.episodeNumber).toBe(14);
+  });
+});
+
+describe('getJustWatchPageType', () => {
+  it('returns "detail" for movie URLs', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us/movie/titanic-1997')).toBe('detail');
+    expect(getJustWatchPageType('https://www.justwatch.com/uk/movie/the-matrix')).toBe('detail');
+  });
+
+  it('returns "detail" for TV show URLs', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us/tv-show/breaking-bad')).toBe(
+      'detail',
+    );
+    expect(getJustWatchPageType('https://www.justwatch.com/de/tv-show/dark')).toBe('detail');
+  });
+
+  it('returns "search" for search URLs', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us/search?q=matrix')).toBe('search');
+    expect(getJustWatchPageType('https://www.justwatch.com/uk/search?q=titanic')).toBe('search');
+  });
+
+  it('returns "other" for non-detail, non-search JustWatch URLs', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us')).toBe('other');
+    expect(getJustWatchPageType('https://www.justwatch.com/us/popular')).toBe('other');
+    expect(getJustWatchPageType('https://www.justwatch.com/us/new')).toBe('other');
+  });
+
+  it('handles bare search path without query params', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us/search')).toBe('search');
+  });
+
+  it('prioritizes pathname over query params', () => {
+    expect(getJustWatchPageType('https://www.justwatch.com/us/movie/search-party?ref=search')).toBe(
+      'detail',
+    );
   });
 });

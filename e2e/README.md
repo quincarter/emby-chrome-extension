@@ -23,6 +23,27 @@
 | ✅     | shows Request indicator for unavailable media |
 | ✅     | shows Configure indicator when unconfigured   |
 
+<details>
+<summary>📸 Screenshots (4)</summary>
+
+#### injects status indicator for a movie
+
+![injects status indicator for a movie](screenshots/amazon-spec-ts-amazon-content-script-injection-injects-status-indicator-for-a-movie.png)
+
+#### injects status indicator for a TV series
+
+![injects status indicator for a TV series](screenshots/amazon-spec-ts-amazon-content-script-injection-injects-status-indicator-for-a-tv-series.png)
+
+#### shows Request indicator for unavailable media
+
+![shows Request indicator for unavailable media](screenshots/amazon-spec-ts-amazon-content-script-injection-shows-request-indicator-for-unavailable-media.png)
+
+#### shows Configure indicator when unconfigured
+
+![shows Configure indicator when unconfigured](screenshots/amazon-spec-ts-amazon-content-script-injection-shows-configure-indicator-when-unconfigured.png)
+
+</details>
+
 ## ✅ Bing Search (4/4)
 
 | Status | Test                                             |
@@ -31,6 +52,27 @@
 | ✅     | injects sidebar card for a TV series search      |
 | ✅     | sidebar is placed before #b_results              |
 | ✅     | shows "No results" for empty Jellyseerr response |
+
+<details>
+<summary>📸 Screenshots (4)</summary>
+
+#### injects sidebar card for a movie search
+
+![injects sidebar card for a movie search](screenshots/bing-spec-ts-bing-search-sidebar-injection-injects-sidebar-card-for-a-movie-search.png)
+
+#### injects sidebar card for a TV series search
+
+![injects sidebar card for a TV series search](screenshots/bing-spec-ts-bing-search-sidebar-injection-injects-sidebar-card-for-a-tv-series-search.png)
+
+#### sidebar is placed before #b_results
+
+![sidebar is placed before #b_results](screenshots/bing-spec-ts-bing-search-sidebar-injection-sidebar-is-placed-before-b-results.png)
+
+#### shows "No results" for empty Jellyseerr response
+
+![shows "No results" for empty Jellyseerr response](screenshots/bing-spec-ts-bing-search-sidebar-injection-shows-no-results-for-empty-jellyseerr-response.png)
+
+</details>
 
 ## ✅ Google Search (5/5)
 
@@ -41,6 +83,31 @@
 | ✅     | sidebar is placed above the search results (#rso) |
 | ✅     | shows "No results" for empty Jellyseerr response  |
 | ✅     | shows Request button for unavailable movie        |
+
+<details>
+<summary>📸 Screenshots (5)</summary>
+
+#### injects sidebar card for a movie search
+
+![injects sidebar card for a movie search](screenshots/google-spec-ts-google-search-sidebar-injection-injects-sidebar-card-for-a-movie-search.png)
+
+#### injects sidebar card for a TV series search
+
+![injects sidebar card for a TV series search](screenshots/google-spec-ts-google-search-sidebar-injection-injects-sidebar-card-for-a-tv-series-search.png)
+
+#### sidebar is placed above the search results (#rso)
+
+![sidebar is placed above the search results (#rso)](screenshots/google-spec-ts-google-search-sidebar-injection-sidebar-is-placed-above-the-search-results-rso.png)
+
+#### shows "No results" for empty Jellyseerr response
+
+![shows "No results" for empty Jellyseerr response](screenshots/google-spec-ts-google-search-sidebar-injection-shows-no-results-for-empty-jellyseerr-response.png)
+
+#### shows Request button for unavailable movie
+
+![shows Request button for unavailable movie](screenshots/google-spec-ts-google-search-sidebar-injection-shows-request-button-for-unavailable-movie.png)
+
+</details>
 
 ## ✅ IMDb (7/7)
 
@@ -54,6 +121,39 @@
 | ✅     | shows "No results" when Jellyseerr returns empty   |
 | ✅     | shows Play on Emby button for available movie      |
 
+<details>
+<summary>📸 Screenshots (7)</summary>
+
+#### injects card below hero section for a movie
+
+![injects card below hero section for a movie](screenshots/imdb-spec-ts-imdb-content-script-injection-injects-card-below-hero-section-for-a-movie.png)
+
+#### injects card for a TV series
+
+![injects card for a TV series](screenshots/imdb-spec-ts-imdb-content-script-injection-injects-card-for-a-tv-series.png)
+
+#### injects card for an episode
+
+![injects card for an episode](screenshots/imdb-spec-ts-imdb-content-script-injection-injects-card-for-an-episode.png)
+
+#### card is placed after the hero section
+
+![card is placed after the hero section](screenshots/imdb-spec-ts-imdb-content-script-injection-card-is-placed-after-the-hero-section.png)
+
+#### shows "Not in library" badge for unavailable movie
+
+![shows "Not in library" badge for unavailable movie](screenshots/imdb-spec-ts-imdb-content-script-injection-shows-not-in-library-badge-for-unavailable-movie.png)
+
+#### shows "No results" when Jellyseerr returns empty
+
+![shows "No results" when Jellyseerr returns empty](screenshots/imdb-spec-ts-imdb-content-script-injection-shows-no-results-when-jellyseerr-returns-empty.png)
+
+#### shows Play on Emby button for available movie
+
+![shows Play on Emby button for available movie](screenshots/imdb-spec-ts-imdb-content-script-injection-shows-play-on-emby-button-for-available-movie.png)
+
+</details>
+
 ## ✅ JustWatch (6/6)
 
 | Status | Test                                       |
@@ -65,6 +165,35 @@
 | ✅     | injects badges for search result rows      |
 | ✅     | search badges contain server action text   |
 
+<details>
+<summary>📸 Screenshots (6)</summary>
+
+#### injects card for a movie
+
+![injects card for a movie](screenshots/justwatch-spec-ts-justwatch-content-script-injection-title-detail-pages-injects-card-for-a-movie.png)
+
+#### injects card for a TV show
+
+![injects card for a TV show](screenshots/justwatch-spec-ts-justwatch-content-script-injection-title-detail-pages-injects-card-for-a-tv-show.png)
+
+#### card is placed before the buybox-container
+
+![card is placed before the buybox-container](screenshots/justwatch-spec-ts-justwatch-content-script-injection-title-detail-pages-card-is-placed-before-the-buybox-container.png)
+
+#### shows "No results" for empty response
+
+![shows "No results" for empty response](screenshots/justwatch-spec-ts-justwatch-content-script-injection-title-detail-pages-shows-no-results-for-empty-response.png)
+
+#### injects badges for search result rows
+
+![injects badges for search result rows](screenshots/justwatch-spec-ts-justwatch-content-script-injection-search-results-page-injects-badges-for-search-result-rows.png)
+
+#### search badges contain server action text
+
+![search badges contain server action text](screenshots/justwatch-spec-ts-justwatch-content-script-injection-search-results-page-search-badges-contain-server-action-text.png)
+
+</details>
+
 ## ✅ Netflix (5/5)
 
 | Status | Test                                          |
@@ -74,6 +203,31 @@
 | ✅     | shows Request indicator for unavailable media |
 | ✅     | shows Configure indicator when unconfigured   |
 | ✅     | indicator has close button                    |
+
+<details>
+<summary>📸 Screenshots (5)</summary>
+
+#### injects status indicator for a TV series
+
+![injects status indicator for a TV series](screenshots/netflix-spec-ts-netflix-content-script-injection-injects-status-indicator-for-a-tv-series.png)
+
+#### injects status indicator for a movie
+
+![injects status indicator for a movie](screenshots/netflix-spec-ts-netflix-content-script-injection-injects-status-indicator-for-a-movie.png)
+
+#### shows Request indicator for unavailable media
+
+![shows Request indicator for unavailable media](screenshots/netflix-spec-ts-netflix-content-script-injection-shows-request-indicator-for-unavailable-media.png)
+
+#### shows Configure indicator when unconfigured
+
+![shows Configure indicator when unconfigured](screenshots/netflix-spec-ts-netflix-content-script-injection-shows-configure-indicator-when-unconfigured.png)
+
+#### indicator has close button
+
+![indicator has close button](screenshots/netflix-spec-ts-netflix-content-script-injection-indicator-has-close-button.png)
+
+</details>
 
 ## ✅ Trakt (8/8)
 
@@ -87,6 +241,43 @@
 | ✅     | shows "Set up" label when unconfigured               |
 | ✅     | injects elements for a TV series                     |
 | ✅     | does not duplicate elements on re-injection          |
+
+<details>
+<summary>📸 Screenshots (8)</summary>
+
+#### injects Where to Watch item for available movie
+
+![injects Where to Watch item for available movie](screenshots/trakt-spec-ts-trakt-content-script-injection-injects-where-to-watch-item-for-available-movie.png)
+
+#### injects legacy action button for available movie
+
+![injects legacy action button for available movie](screenshots/trakt-spec-ts-trakt-content-script-injection-injects-legacy-action-button-for-available-movie.png)
+
+#### WTW item is prepended to the list container
+
+![WTW item is prepended to the list container](screenshots/trakt-spec-ts-trakt-content-script-injection-wtw-item-is-prepended-to-the-list-container.png)
+
+#### legacy button is inserted before the Check In button
+
+![legacy button is inserted before the Check In button](screenshots/trakt-spec-ts-trakt-content-script-injection-legacy-button-is-inserted-before-the-check-in-button.png)
+
+#### shows Request label for unavailable movie
+
+![shows Request label for unavailable movie](screenshots/trakt-spec-ts-trakt-content-script-injection-shows-request-label-for-unavailable-movie.png)
+
+#### shows "Set up" label when unconfigured
+
+![shows "Set up" label when unconfigured](screenshots/trakt-spec-ts-trakt-content-script-injection-shows-set-up-label-when-unconfigured.png)
+
+#### injects elements for a TV series
+
+![injects elements for a TV series](screenshots/trakt-spec-ts-trakt-content-script-injection-injects-elements-for-a-tv-series.png)
+
+#### does not duplicate elements on re-injection
+
+![does not duplicate elements on re-injection](screenshots/trakt-spec-ts-trakt-content-script-injection-does-not-duplicate-elements-on-re-injection.png)
+
+</details>
 
 ---
 

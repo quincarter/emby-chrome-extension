@@ -9,7 +9,11 @@
     "build": "tsc && vite build",
     "build:extension": "tsc && vite build && echo 'Extension built to dist/'",
     "preview": "vite preview",
-    "test": "wtr",
+    "test": "wtr && vitest run",
+    "test:unit": "vitest run",
+    "test:unit:watch": "vitest watch",
+    "test:unit:coverage": "vitest run --coverage",
+    "test:wtr": "wtr",
     "test:watch": "wtr --node-resolve --playwright --browsers chromium --watch"
   },
   "dependencies": {
@@ -21,11 +25,14 @@
     "@playwright/test": "^1.58.2",
     "@types/chrome": "^0.1.36",
     "@types/mocha": "^10.0.10",
+    "@vitest/coverage-v8": "^4.0.18",
     "@web/dev-server-esbuild": "^1.0.5",
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-playwright": "^0.11.1",
+    "happy-dom": "^20.6.1",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
-    "vite-plugin-static-copy": "^3.2.0"
+    "vite-plugin-static-copy": "^3.2.0",
+    "vitest": "^4.0.18"
   }
 }

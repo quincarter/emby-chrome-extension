@@ -6,7 +6,12 @@ export default {
   files: "src/**/*.test.ts",
   nodeResolve: true,
   browsers: [playwrightLauncher({ product: "chromium" })],
-  plugins: [esbuildPlugin({ ts: true })],
+  plugins: [
+    esbuildPlugin({
+      ts: true,
+      tsconfig: "./tsconfig.json",
+    }),
+  ],
   testFramework: {
     config: {
       timeout: 5000,

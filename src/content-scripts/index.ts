@@ -1,4 +1,5 @@
 import { detectMedia, identifySite } from "./detect-media.js";
+import { buildCheckPayload } from "./helpers.js";
 import type {
   CheckMediaResponse,
   GetConfigResponse,
@@ -63,30 +64,6 @@ const init = async (): Promise<void> => {
   if (response) {
     injectStatusIndicator(response, media.type);
   }
-};
-
-/**
- * Build CHECK_MEDIA payload from detected media.
- */
-const buildCheckPayload = (media: ReturnType<typeof detectMedia>) => {
-  if (!media) throw new Error("No media detected");
-  return {
-    title:
-      media.type === "season" || media.type === "episode"
-        ? media.seriesTitle
-        : media.title,
-    year: media.year,
-    imdbId: media.imdbId,
-    tmdbId: media.tmdbId,
-    mediaType: media.type,
-    seasonNumber:
-      media.type === "season"
-        ? media.seasonNumber
-        : media.type === "episode"
-          ? media.seasonNumber
-          : undefined,
-    episodeNumber: media.type === "episode" ? media.episodeNumber : undefined,
-  };
 };
 
 /**

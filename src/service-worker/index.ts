@@ -14,10 +14,8 @@ import {
   requestMovie,
   requestTvShow,
 } from "../utils/jellyseerr-client.js";
-import {
-  resolveJellyseerrUrl,
-} from "../utils/url-resolver.js";
-import type { DetectedMedia, ExtensionConfig } from "../types/index.js";
+import { resolveJellyseerrUrl } from "../utils/url-resolver.js";
+import type { ExtensionConfig } from "../types/index.js";
 import type {
   CheckMediaMessage,
   OpenTabMessage,
@@ -25,6 +23,12 @@ import type {
   SearchJellyseerrMessage,
   SaveConfigMessage,
 } from "../types/messages.js";
+import {
+  mapMediaStatus,
+  withTimeout,
+  buildDetectedMediaFromMessage,
+  buildServerItemUrl,
+} from "./helpers.js";
 
 /**
  * Service worker message handler.
@@ -91,52 +95,17 @@ const handleMessage = async (
 const handleCheckMedia = async (message: CheckMediaMessage) => {
   const config = await loadConfig();
 
-  const media: DetectedMedia =
-    message.payload.mediaType === "movie"
-      ? {
-          type: "movie",
-          title: message.payload.title,
-          year: message.payload.year,
-          imdbId: message.payload.imdbId,
-          tmdbId: message.payload.tmdbId,
-        }
-      : message.payload.mediaType === "series"
-        ? {
-            type: "series",
-            title: message.payload.title,
-            year: message.payload.year,
-            imdbId: message.payload.imdbId,
-            tmdbId: message.payload.tmdbId,
-          }
-        : message.payload.mediaType === "season"
-          ? {
-              type: "season",
-              seriesTitle: message.payload.title,
-              seasonNumber: message.payload.seasonNumber ?? 1,
-              year: message.payload.year,
-              imdbId: message.payload.imdbId,
-              tmdbId: message.payload.tmdbId,
-            }
-          : {
-              type: "episode",
-              seriesTitle: message.payload.title,
-              seasonNumber: message.payload.seasonNumber ?? 1,
-              episodeNumber: message.payload.episodeNumber ?? 1,
-              year: message.payload.year,
-              imdbId: message.payload.imdbId,
-              tmdbId: message.payload.tmdbId,
-            };
+  const media = buildDetectedMediaFromMessage(message.payload);
 
   const availability = await checkMediaAvailability(config, media);
 
   if (availability.status === "available") {
-    const serverIdParam = availability.item.ServerId
-      ? `&serverId=${availability.item.ServerId}`
-      : "";
-    const itemUrl =
-      config.server.serverType === "jellyfin"
-        ? `${availability.serverUrl}/web/#/details?id=${availability.item.Id}${serverIdParam}`
-        : `${availability.serverUrl}/web/index.html#!/item?id=${availability.item.Id}${serverIdParam}`;
+    const itemUrl = buildServerItemUrl(
+      config.server.serverType,
+      availability.serverUrl,
+      availability.item.Id,
+      availability.item.ServerId,
+    );
 
     return {
       type: "CHECK_MEDIA_RESPONSE",
@@ -150,13 +119,12 @@ const handleCheckMedia = async (message: CheckMediaMessage) => {
   }
 
   if (availability.status === "partial") {
-    const serverIdParam = availability.item.ServerId
-      ? `&serverId=${availability.item.ServerId}`
-      : "";
-    const itemUrl =
-      config.server.serverType === "jellyfin"
-        ? `${availability.serverUrl}/web/#/details?id=${availability.item.Id}${serverIdParam}`
-        : `${availability.serverUrl}/web/index.html#!/item?id=${availability.item.Id}${serverIdParam}`;
+    const itemUrl = buildServerItemUrl(
+      config.server.serverType,
+      availability.serverUrl,
+      availability.item.Id,
+      availability.item.ServerId,
+    );
 
     return {
       type: "CHECK_MEDIA_RESPONSE",
@@ -360,49 +328,6 @@ const handleTestJellyseerr = async () => {
 };
 
 /**
- * Map Jellyseerr numeric media status to a human-readable string.
- */
-const mapMediaStatus = (
-  status: number | undefined,
-):
-  | "available"
-  | "partial"
-  | "pending"
-  | "processing"
-  | "unknown"
-  | "not_requested" => {
-  switch (status) {
-    case 5:
-      return "available";
-    case 4:
-      return "partial";
-    case 3:
-      return "processing";
-    case 2:
-      return "pending";
-    case 1:
-      return "unknown";
-    default:
-      return "not_requested";
-  }
-};
-
-/**
- * Race a promise against a timeout.
- * Returns undefined if the timeout fires first.
- */
-const withTimeout = <T>(
-  promise: Promise<T>,
-  ms: number,
-): Promise<T | undefined> =>
-  Promise.race([
-    promise,
-    new Promise<undefined>((resolve) =>
-      setTimeout(() => resolve(undefined), ms),
-    ),
-  ]);
-
-/**
  * Search Jellyseerr and return enriched results with availability info.
  */
 const handleSearchJellyseerr = async (message: SearchJellyseerrMessage) => {
@@ -498,13 +423,12 @@ const handleSearchJellyseerr = async (message: SearchJellyseerrMessage) => {
             );
             const match = serverResults?.Items?.[0];
             if (match) {
-              const serverIdParam = match.ServerId
-                ? `&serverId=${match.ServerId}`
-                : "";
-              serverItemUrl =
-                config.server.serverType === "jellyfin"
-                  ? `${resolvedUrl}/web/#/details?id=${match.Id}${serverIdParam}`
-                  : `${resolvedUrl}/web/index.html#!/item?id=${match.Id}${serverIdParam}`;
+              serverItemUrl = buildServerItemUrl(
+                config.server.serverType,
+                resolvedUrl,
+                match.Id,
+                match.ServerId,
+              );
               console.log(
                 "[Media Connector] Built serverItemUrl:",
                 serverItemUrl,

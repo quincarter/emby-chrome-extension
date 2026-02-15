@@ -63,7 +63,7 @@ export class SandboxApp extends LitElement {
     return html`
       <div class="sandbox-header">
         <div>
-          <h1>Media Server Connector - Sandbox</h1>
+          <h1>I've got this! - Sandbox</h1>
           <p>Develop and test components in isolation</p>
         </div>
         <div class="mode-toggle">

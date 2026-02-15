@@ -577,4 +577,4 @@ const handleOpenTab = (message: OpenTabMessage): Effect.Effect<unknown> =>
   );
 
 // Log service worker activation
-console.log('[Media Server Connector] Service worker activated');
+console.log("[I've got this!] Service worker activated");

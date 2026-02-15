@@ -15,7 +15,7 @@ test.describe('IMDb — live site integration', () => {
 
     const card = page.locator('#media-connector-imdb-card');
     await expect(card).toBeVisible({ timeout: 10_000 });
-    await expect(card).toContainText('Media Server Connector');
+    await expect(card).toContainText("I've got this!");
     await expect(card).toContainText('The Matrix');
     await screenshotInjectedElement(page, testInfo, '#media-connector-imdb-card');
   });

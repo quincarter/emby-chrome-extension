@@ -1,7 +1,7 @@
 {
-  "name": "emby-chrome-extension",
+  "name": "@quincarter/ive-got-this-extension",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "build": "tsc && vite build && vite build --config vite.config.content-script.ts",
     "build:extension": "tsc && vite build && vite build --config vite.config.content-script.ts && echo 'Extension built to dist/'",
     "preview": "vite preview",
-    "checkyoself": "yarn lint && yarn format && yarn build && yarn test && yarn test:e2e",
+    "checkyoself": "yarn lint && yarn format && yarn build && yarn wtr --coverage && yarn test:unit:coverage && yarn test:e2e",
     "test": "wtr && vitest run",
     "test:e2e": "vite build --config vite.config.e2e.ts && playwright test",
     "test:e2e:report": "vite build --config vite.config.e2e.ts && playwright test && tsx scripts/generate-e2e-readme.ts",
@@ -25,7 +25,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "gen:icons": "tsx scripts/generate-icons-from-svg.ts",
-    "version": "tsx scripts/sync-manifest-version.ts",
+    "changeset:add": "changeset && changeset version",
+    "changeset:publish": "changeset publish",
+    "version": "tsx scripts/sync-manifest-version.ts && yarn gen:icons",
     "prepare": "husky"
   },
   "dependencies": {

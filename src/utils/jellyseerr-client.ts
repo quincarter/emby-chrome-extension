@@ -3,6 +3,15 @@ import { resolveJellyseerrUrl } from "./url-resolver.js";
 
 /**
  * Build Jellyseerr API headers.
+ *
+ * Jellyseerr supports two authentication methods:
+ *  1. Cookie-based session auth (requires CSRF tokens)
+ *  2. API Key auth via the `X-Api-Key` header
+ *
+ * This extension uses **API Key auth exclusively**, which means
+ * CSRF tokens are NOT required. The `X-Api-Key` header is sufficient
+ * for all GET, POST, PUT, and DELETE requests.
+ *
  * @param config - Extension configuration
  * @returns Headers for Jellyseerr API requests
  */
@@ -22,100 +31,39 @@ const getResolvedBaseUrl = async (config: ExtensionConfig): Promise<string> =>
   resolveJellyseerrUrl(config);
 
 /**
- * Fetch the CSRF token from Jellyseerr.
+ * Clear all cookies for a Jellyseerr domain.
  *
- * Jellyseerr uses `csurf` middleware. The flow is:
- *  1. Make a GET request with `credentials: "include"` to set the
- *     `XSRF-TOKEN` cookie in the browser.
- *  2. Read the cookie via `chrome.cookies.get()`.
- *  3. Return the decoded value to include as `x-xsrf-token` header.
+ * Jellyseerr uses `csurf` middleware. If the browser (or Chrome extension
+ * service worker with host permissions) has any leftover session cookies
+ * (`_csrf`, `connect.sid`, `XSRF-TOKEN`, etc.) from a previous browser
+ * login, the server's CSRF middleware activates and demands a valid CSRF
+ * token — even when the request uses API-Key auth.
+ *
+ * By clearing all cookies for the domain before mutation requests,
+ * the server sees a cookie-less request and skips CSRF validation,
+ * relying solely on the `X-Api-Key` header.
  */
-const fetchCsrfToken = async (
-  baseUrl: string,
-  headers: Record<string, string>,
-): Promise<string | undefined> => {
-  // 1) Hit a GET endpoint so the server sets the XSRF-TOKEN cookie.
-  console.log("[Media Connector] CSRF: fetching token via GET", baseUrl);
+const clearJellyseerrCookies = async (baseUrl: string): Promise<void> => {
+  if (typeof chrome === "undefined" || !chrome.cookies) {
+    return;
+  }
+
   try {
-    const res = await fetch(`${baseUrl}/api/v1/status`, {
-      headers,
-      credentials: "include",
-    });
-    console.log("[Media Connector] CSRF: GET /status response:", res.status);
-
-    // Try reading token from Set-Cookie via getSetCookie() (Chrome 113+)
-    if (typeof res.headers.getSetCookie === "function") {
-      const setCookies = res.headers.getSetCookie();
-      console.log("[Media Connector] CSRF: Set-Cookie headers:", setCookies);
-      for (const sc of setCookies) {
-        const xsrfMatch = sc.match(/XSRF-TOKEN=([^;]+)/);
-        if (xsrfMatch) {
-          console.log("[Media Connector] CSRF: token from Set-Cookie header");
-          return decodeURIComponent(xsrfMatch[1]);
-        }
-      }
-    }
+    const url = new URL(baseUrl);
+    const cookies = await chrome.cookies.getAll({ domain: url.hostname });
+    console.log(
+      `[Media Connector] Clearing ${cookies.length} cookies for ${url.hostname}`,
+    );
+    await Promise.all(
+      cookies.map((cookie) => {
+        const protocol = cookie.secure ? "https" : "http";
+        const cookieUrl = `${protocol}://${cookie.domain.replace(/^\./, "")}${cookie.path}`;
+        return chrome.cookies.remove({ url: cookieUrl, name: cookie.name });
+      }),
+    );
   } catch (e) {
-    console.warn("[Media Connector] CSRF: GET /status failed:", e);
+    console.warn("[Media Connector] Failed to clear cookies:", e);
   }
-
-  // 2) Read the cookie via chrome.cookies API.
-  if (typeof chrome !== "undefined" && chrome.cookies) {
-    console.log("[Media Connector] CSRF: trying chrome.cookies for", baseUrl);
-    const cookieNames = ["XSRF-TOKEN", "_csrf"];
-    for (const name of cookieNames) {
-      try {
-        const cookie = await chrome.cookies.get({ url: baseUrl, name });
-        console.log(
-          `[Media Connector] CSRF: chrome.cookies.get(${name}):`,
-          cookie,
-        );
-        if (cookie?.value) {
-          console.log(
-            `[Media Connector] CSRF: token obtained via chrome.cookies (${name})`,
-          );
-          return decodeURIComponent(cookie.value);
-        }
-      } catch (e) {
-        console.warn(
-          `[Media Connector] CSRF: chrome.cookies.get(${name}) error:`,
-          e,
-        );
-      }
-    }
-
-    // Also list ALL cookies for the domain to debug
-    try {
-      const url = new URL(baseUrl);
-      const allCookies = await chrome.cookies.getAll({ domain: url.hostname });
-      console.log(
-        "[Media Connector] CSRF: all cookies for domain:",
-        allCookies.map((c) => `${c.name}=${c.value.slice(0, 20)}...`),
-      );
-    } catch (e) {
-      console.warn("[Media Connector] CSRF: getAll cookies error:", e);
-    }
-  } else {
-    console.warn("[Media Connector] CSRF: chrome.cookies API not available");
-  }
-
-  console.warn("[Media Connector] CSRF: could not obtain token");
-  return undefined;
-};
-
-/**
- * Build headers for a POST/PUT/DELETE request, including the CSRF token.
- */
-const buildMutationHeaders = async (
-  config: ExtensionConfig,
-): Promise<Record<string, string>> => {
-  const baseUrl = await getResolvedBaseUrl(config);
-  const headers = buildJellyseerrHeaders(config);
-  const csrf = await fetchCsrfToken(baseUrl, headers);
-  if (csrf) {
-    headers["x-xsrf-token"] = csrf;
-  }
-  return headers;
 };
 
 /**
@@ -136,10 +84,22 @@ export const jellyseerrSearch = async (
   }
 
   const url = `${baseUrl}/api/v1/search?query=${encodeURIComponent(trimmed)}&page=1&language=en`;
-  console.log("[Media Connector] Jellyseerr search URL:", url);
+
+  console.log(
+    "[Media Connector] Jellyseerr SEARCH request:",
+    "\n  Configured URL:",
+    config.jellyseerr.serverUrl,
+    "\n  Local URL:",
+    config.jellyseerr.localServerUrl ?? "(none)",
+    "\n  Resolved URL:",
+    baseUrl,
+    "\n  Full request URL:",
+    url,
+  );
 
   const response = await fetch(url, {
     headers: buildJellyseerrHeaders(config),
+    credentials: "omit",
   });
 
   if (!response.ok) {
@@ -167,21 +127,48 @@ export const requestMovie = async (
   tmdbId: number,
 ): Promise<JellyseerrRequestResult> => {
   const baseUrl = await getResolvedBaseUrl(config);
-  const headers = await buildMutationHeaders(config);
+  const headers = buildJellyseerrHeaders(config);
 
-  const response = await fetch(`${baseUrl}/api/v1/request`, {
+  // Clear any lingering session cookies so the CSRF middleware
+  // doesn't activate — we authenticate via X-Api-Key only.
+  await clearJellyseerrCookies(baseUrl);
+
+  const requestUrl = `${baseUrl}/api/v1/request`;
+  const requestBody = { mediaType: "movie" as const, mediaId: tmdbId };
+
+  console.log(
+    "[Media Connector] Jellyseerr REQUEST MOVIE:",
+    "\n  Configured URL:",
+    config.jellyseerr.serverUrl,
+    "\n  Local URL:",
+    config.jellyseerr.localServerUrl ?? "(none)",
+    "\n  Resolved URL:",
+    baseUrl,
+    "\n  POST:",
+    requestUrl,
+    "\n  Body:",
+    JSON.stringify(requestBody),
+    "\n  API Key:",
+    config.jellyseerr.apiKey ? `${config.jellyseerr.apiKey.slice(0, 4)}...` : "(missing)",
+  );
+
+  const response = await fetch(requestUrl, {
     method: "POST",
     headers,
-    credentials: "include",
-    body: JSON.stringify({
-      mediaType: "movie",
-      mediaId: tmdbId,
-    }),
+    credentials: "omit",
+    body: JSON.stringify(requestBody),
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Jellyseerr request failed: ${errorBody}`);
+    console.error(
+      "[Media Connector] Jellyseerr movie request failed:",
+      response.status,
+      errorBody,
+    );
+    throw new Error(
+      `Jellyseerr request failed (${response.status}): ${errorBody}`,
+    );
   }
 
   return response.json() as Promise<JellyseerrRequestResult>;
@@ -210,18 +197,47 @@ export const requestTvShow = async (
     body["seasons"] = seasons;
   }
 
-  const headers = await buildMutationHeaders(config);
+  const headers = buildJellyseerrHeaders(config);
 
-  const response = await fetch(`${baseUrl}/api/v1/request`, {
+  // Clear any lingering session cookies so the CSRF middleware
+  // doesn't activate — we authenticate via X-Api-Key only.
+  await clearJellyseerrCookies(baseUrl);
+
+  const requestUrl = `${baseUrl}/api/v1/request`;
+
+  console.log(
+    "[Media Connector] Jellyseerr REQUEST TV SHOW:",
+    "\n  Configured URL:",
+    config.jellyseerr.serverUrl,
+    "\n  Local URL:",
+    config.jellyseerr.localServerUrl ?? "(none)",
+    "\n  Resolved URL:",
+    baseUrl,
+    "\n  POST:",
+    requestUrl,
+    "\n  Body:",
+    JSON.stringify(body),
+    "\n  API Key:",
+    config.jellyseerr.apiKey ? `${config.jellyseerr.apiKey.slice(0, 4)}...` : "(missing)",
+  );
+
+  const response = await fetch(requestUrl, {
     method: "POST",
     headers,
-    credentials: "include",
+    credentials: "omit",
     body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Jellyseerr request failed: ${errorBody}`);
+    console.error(
+      "[Media Connector] Jellyseerr TV request failed:",
+      response.status,
+      errorBody,
+    );
+    throw new Error(
+      `Jellyseerr request failed (${response.status}): ${errorBody}`,
+    );
   }
 
   return response.json() as Promise<JellyseerrRequestResult>;
@@ -237,9 +253,31 @@ export const testJellyseerrConnection = async (
 ): Promise<boolean> => {
   try {
     const baseUrl = await getResolvedBaseUrl(config);
-    const response = await fetch(`${baseUrl}/api/v1/status`, {
+    const testUrl = `${baseUrl}/api/v1/status`;
+
+    console.log(
+      "[Media Connector] Jellyseerr TEST CONNECTION:",
+      "\n  Configured URL:",
+      config.jellyseerr.serverUrl,
+      "\n  Local URL:",
+      config.jellyseerr.localServerUrl ?? "(none)",
+      "\n  Resolved URL:",
+      baseUrl,
+      "\n  GET:",
+      testUrl,
+    );
+
+    const response = await fetch(testUrl, {
       headers: buildJellyseerrHeaders(config),
+      credentials: "omit",
     });
+
+    console.log(
+      "[Media Connector] Jellyseerr TEST CONNECTION result:",
+      response.status,
+      response.ok ? "OK" : "FAILED",
+    );
+
     return response.ok;
   } catch {
     return false;

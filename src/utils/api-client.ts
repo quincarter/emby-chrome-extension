@@ -266,7 +266,20 @@ const resolveMediaMatch = async (
   const baseUrl = await getResolvedBaseUrl(config);
 
   if (media.type === "movie") {
-    const match = items.find((i) => i.Type === "Movie") ?? items[0];
+    const year = media.year;
+    // Prefer exact type + year match, then type-only, then first item
+    const typeMatches = items.filter((i) => i.Type === "Movie");
+    const match = year
+      ? (typeMatches.find(
+          (i) =>
+            i.ProductionYear !== undefined &&
+            Math.abs(i.ProductionYear - year) <= 1,
+        ) ?? (typeMatches.length > 0 ? undefined : items[0]))
+      : (typeMatches[0] ?? items[0]);
+
+    if (!match) {
+      return { status: "unavailable" };
+    }
     return {
       status: "available",
       item: match,
@@ -275,7 +288,19 @@ const resolveMediaMatch = async (
   }
 
   if (media.type === "series") {
-    const match = items.find((i) => i.Type === "Series") ?? items[0];
+    const year = media.year;
+    const typeMatches = items.filter((i) => i.Type === "Series");
+    const match = year
+      ? (typeMatches.find(
+          (i) =>
+            i.ProductionYear !== undefined &&
+            Math.abs(i.ProductionYear - year) <= 1,
+        ) ?? (typeMatches.length > 0 ? undefined : items[0]))
+      : (typeMatches[0] ?? items[0]);
+
+    if (!match) {
+      return { status: "unavailable" };
+    }
     return {
       status: "available",
       item: match,

@@ -14,6 +14,9 @@ import {
   requestMovie,
   requestTvShow,
 } from "../utils/jellyseerr-client.js";
+import {
+  resolveJellyseerrUrl,
+} from "../utils/url-resolver.js";
 import type { DetectedMedia, ExtensionConfig } from "../types/index.js";
 import type {
   CheckMediaMessage,
@@ -189,6 +192,24 @@ const handleRequestMedia = async (message: RequestMediaMessage) => {
     };
   }
 
+  // Resolve the Jellyseerr URL up front for logging
+  const resolvedJellyseerrUrl = await resolveJellyseerrUrl(config);
+  console.log(
+    "[Media Connector] handleRequestMedia:",
+    "\n  Configured Jellyseerr URL:",
+    config.jellyseerr.serverUrl,
+    "\n  Local Jellyseerr URL:",
+    config.jellyseerr.localServerUrl ?? "(none)",
+    "\n  Resolved Jellyseerr URL:",
+    resolvedJellyseerrUrl,
+    "\n  Title:",
+    message.payload.title,
+    "\n  TMDb ID:",
+    message.payload.tmdbId ?? "(none)",
+    "\n  Media Type:",
+    message.payload.mediaType,
+  );
+
   try {
     let tmdbId: number | undefined;
 
@@ -242,14 +263,26 @@ const handleRequestMedia = async (message: RequestMediaMessage) => {
 
     return {
       type: "REQUEST_MEDIA_RESPONSE",
-      payload: { success: true, message: "Request submitted successfully!" },
+      payload: {
+        success: true,
+        message: `Request submitted successfully to ${resolvedJellyseerrUrl}!`,
+      },
     };
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : "Unknown error";
-    console.error("[Media Connector] Request failed:", errMsg);
+    console.error(
+      "[Media Connector] Request failed:",
+      "\n  Server:",
+      resolvedJellyseerrUrl,
+      "\n  Error:",
+      errMsg,
+    );
     return {
       type: "REQUEST_MEDIA_RESPONSE",
-      payload: { success: false, message: errMsg },
+      payload: {
+        success: false,
+        message: `[${resolvedJellyseerrUrl}] ${errMsg}`,
+      },
     };
   }
 };

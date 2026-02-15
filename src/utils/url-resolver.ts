@@ -47,6 +47,7 @@ export const probeServerUrl = async (
     const response = await fetch(`${baseUrl}${probePath}`, {
       signal: controller.signal,
       headers: { Accept: "application/json" },
+      credentials: "omit",
     });
     return response.ok;
   } catch {

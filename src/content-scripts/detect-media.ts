@@ -149,7 +149,38 @@ const detectFromImdb = (): DetectedMedia | undefined => {
 };
 
 /**
+ * Extract IMDb ID from links on the current page.
+ * Trakt pages typically have external links to IMDb in the sidebar.
+ */
+const extractImdbIdFromPage = (): string | undefined => {
+  const link = document.querySelector<HTMLAnchorElement>(
+    'a[href*="imdb.com/title/tt"]',
+  );
+  if (link) {
+    const match = link.href.match(/(tt\d+)/);
+    if (match) return match[1];
+  }
+  return undefined;
+};
+
+/**
+ * Extract TMDb ID from links on the current page.
+ * Trakt pages typically have external links to TMDb in the sidebar.
+ */
+const extractTmdbIdFromPage = (): string | undefined => {
+  const link = document.querySelector<HTMLAnchorElement>(
+    'a[href*="themoviedb.org/movie/"], a[href*="themoviedb.org/tv/"]',
+  );
+  if (link) {
+    const match = link.href.match(/(?:movie|tv)\/(\d+)/);
+    if (match) return match[1];
+  }
+  return undefined;
+};
+
+/**
  * Detect media from Trakt.tv pages.
+ * Extracts title, year, and external IDs (IMDb, TMDb) from page links.
  */
 const detectFromTrakt = (): DetectedMedia | undefined => {
   const url = window.location.href;
@@ -163,9 +194,17 @@ const detectFromTrakt = (): DetectedMedia | undefined => {
     ? extractYear(yearElement.textContent ?? "")
     : undefined;
 
+  // Extract external IDs from page links (sidebar external links)
+  const imdbId = extractImdbIdFromPage();
+  const tmdbId = extractTmdbIdFromPage();
+
+  console.log(
+    `[Media Connector] Trakt detection — title: "${title}", year: ${year}, imdbId: ${imdbId ?? "none"}, tmdbId: ${tmdbId ?? "none"}`,
+  );
+
   // Trakt movie pages: /movies/movie-slug
   if (url.includes("/movies/")) {
-    return { type: "movie", title, year };
+    return { type: "movie", title, year, imdbId, tmdbId };
   }
 
   // Trakt show pages with season/episode: /shows/show-slug/seasons/X/episodes/Y
@@ -178,6 +217,8 @@ const detectFromTrakt = (): DetectedMedia | undefined => {
       seriesTitle: title,
       seasonNumber: parseInt(episodeMatch[1], 10),
       episodeNumber: parseInt(episodeMatch[2], 10),
+      imdbId,
+      tmdbId,
     };
   }
 
@@ -188,12 +229,14 @@ const detectFromTrakt = (): DetectedMedia | undefined => {
       type: "season",
       seriesTitle: title,
       seasonNumber: parseInt(seasonMatch[1], 10),
+      imdbId,
+      tmdbId,
     };
   }
 
   // Trakt show pages: /shows/show-slug
   if (url.includes("/shows/")) {
-    return { type: "series", title, year };
+    return { type: "series", title, year, imdbId, tmdbId };
   }
 
   return undefined;

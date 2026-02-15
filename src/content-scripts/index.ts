@@ -135,10 +135,13 @@ const initTrakt = (): void => {
       return;
     }
 
-    // If we have a cached response, ensure our element is still in the DOM
+    // If we have a cached response, ensure our elements are still in the DOM
     if (cachedResponse) {
-      const exists = document.getElementById("media-connector-wtw-item");
-      if (!exists) {
+      const wtwExists = document.getElementById("media-connector-wtw-item");
+      const legacyExists = document.getElementById(
+        "media-connector-trakt-action-btn",
+      );
+      if (!wtwExists || !legacyExists) {
         tryInjectTraktItem(cachedResponse);
       }
       return;
@@ -212,6 +215,12 @@ const tryInjectTraktItem = (response: CheckMediaResponse): void => {
   const canRequest = response.payload.status === "unavailable";
 
   const isUnconfigured = response.payload.status === "unconfigured";
+
+  // If error or unexpected status, skip
+  if (!canLink && !canRequest && !isUnconfigured) return;
+
+  // Always try the legacy action-buttons injection (classic trakt.tv)
+  tryInjectTraktLegacyButton(response);
 
   // If error or unexpected status, skip
   if (!canLink && !canRequest && !isUnconfigured) return;
@@ -340,6 +349,106 @@ const tryInjectTraktItem = (response: CheckMediaResponse): void => {
 
   // Prepend as the first item in the list
   listContainer.prepend(item);
+};
+
+/**
+ * Inject a "Play on Emby/Jellyfin" button into Trakt's legacy action-buttons area.
+ * The button is inserted above the "Check In" button (.btn-checkin).
+ * This targets the classic trakt.tv experience (not app.trakt.tv).
+ */
+const TRAKT_ACTION_BTN_ID = "media-connector-trakt-action-btn";
+
+const tryInjectTraktLegacyButton = (response: CheckMediaResponse): void => {
+  // Don't duplicate
+  if (document.getElementById(TRAKT_ACTION_BTN_ID)) return;
+
+  // Find the Check In button in the action-buttons area
+  const checkinBtn = document.querySelector<HTMLAnchorElement>(
+    ".action-buttons .btn-checkin",
+  );
+  if (!checkinBtn) return;
+
+  const canLink =
+    (response.payload.status === "available" ||
+      response.payload.status === "partial") &&
+    response.payload.itemUrl;
+
+  const canRequest = response.payload.status === "unavailable";
+  const isUnconfigured = response.payload.status === "unconfigured";
+
+  if (!canLink && !canRequest && !isUnconfigured) return;
+
+  const serverType = response.payload.serverType ?? "emby";
+  const serverLabel = serverType === "jellyfin" ? "Jellyfin" : "Emby";
+  const logoSvg = serverType === "jellyfin" ? JELLYFIN_SVG : EMBY_SVG;
+  const serverColor = serverType === "jellyfin" ? "#00A4DC" : "#52B54B";
+
+  // Build the btn matching Trakt's native action button structure
+  const btn = document.createElement("a");
+  btn.id = TRAKT_ACTION_BTN_ID;
+  btn.className = "btn btn-block btn-summary";
+  btn.style.cssText = [
+    `border: 1px solid ${serverColor}`,
+    `border-left: 3px solid ${serverColor}`,
+    `background-color: transparent`,
+    `color: ${serverColor}`,
+    "display: flex",
+    "align-items: center",
+    "transition: background-color 0.15s, color 0.15s",
+  ].join(";");
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.backgroundColor = serverColor;
+    btn.style.color = "#fff";
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.backgroundColor = "transparent";
+    btn.style.color = serverColor;
+  });
+
+  // Scale the SVG to 20x20 to fit Trakt's icon size
+  const iconHtml = logoSvg
+    .replace(/width="48"/, 'width="20"')
+    .replace(/height="48"/, 'height="20"');
+
+  if (canLink) {
+    btn.href = response.payload.itemUrl!;
+    btn.target = "_blank";
+    btn.rel = "noopener";
+    btn.innerHTML = `
+      <div class="fa fa-fw" style="display:inline-flex;align-items:center;justify-content:center;width:1.28571429em;">${iconHtml}</div>
+      <div class="text">
+        <div class="main-info">Play on ${serverLabel}</div>
+        ${response.payload.status === "partial" ? '<div class="under-info">Partial</div>' : ""}
+      </div>`;
+  } else if (canRequest) {
+    btn.href = "#";
+    btn.innerHTML = `
+      <div class="fa fa-fw" style="display:inline-flex;align-items:center;justify-content:center;width:1.28571429em;">${iconHtml}</div>
+      <div class="text">
+        <div class="main-info">Request on ${serverLabel}</div>
+      </div>`;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const textEl = btn.querySelector(".main-info");
+      if (textEl) textEl.textContent = "Requesting…";
+      handleRequestClick().then(() => {
+        if (textEl) textEl.textContent = "Requested!";
+      });
+    });
+  } else {
+    btn.href = "#";
+    btn.style.opacity = "0.6";
+    btn.innerHTML = `
+      <div class="fa fa-fw" style="display:inline-flex;align-items:center;justify-content:center;width:1.28571429em;">${iconHtml}</div>
+      <div class="text">
+        <div class="main-info">Set up ${serverLabel}</div>
+      </div>`;
+  }
+
+  // Insert above the Check In button
+  checkinBtn.insertAdjacentElement("beforebegin", btn);
 };
 
 /**
@@ -1746,11 +1855,13 @@ const requestFromSidebar = async (
 
   console.log(
     "[Media Connector] Requesting media:",
+    "\n  Title:",
     item.title,
-    "tmdbId:",
+    "\n  TMDb ID:",
     item.id,
-    "type:",
+    "\n  Type:",
     mediaType,
+    "\n  (server details will appear in the service worker console)",
   );
 
   const response = await sendMessage<RequestMediaResponse>({
@@ -1763,7 +1874,13 @@ const requestFromSidebar = async (
     },
   });
 
-  console.log("[Media Connector] Request response:", JSON.stringify(response));
+  console.log(
+    "[Media Connector] Request response:",
+    "\n  Success:",
+    response?.payload.success ?? false,
+    "\n  Message:",
+    response?.payload.message ?? "(no response)",
+  );
 
   return response?.payload.success ?? false;
 };

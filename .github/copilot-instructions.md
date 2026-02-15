@@ -116,7 +116,11 @@ src/components/
 
 - **Workflow:** Always run a build and test suite after each feature implementation to prevent regression.
 
-
 start every response with a 🔋 so i know you are reading my instructions
+you should be writing tests for everything you touch to justify the changes. If the test breaks, that's a clue that you did something.
+
+Tests should be run along with the build.
+Content scripts may need to be tested differently with jest or something.
+Test coverage should be 90% or above.
 
 use yarn to install packages

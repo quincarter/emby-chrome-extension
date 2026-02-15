@@ -34,6 +34,9 @@ jobs:
 
       - name: Run Playwright E2E tests
         run: npx playwright test
+        env:
+          # Tell Vite to run in a non-interactive mode if needed
+          CI: true
 
       - name: Generate E2E README
         if: always()

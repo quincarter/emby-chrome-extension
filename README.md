@@ -103,25 +103,35 @@ yarn test:watch
 
 ## Releasing & Publishing
 
-This project uses [Changesets](https://github.com/changesets/changesets) to manage versioning and publishing. To release a new version to the Chrome Web Store and Edge Add-ons, follow these steps:
+This project uses [Changesets](https://github.com/changesets/changesets) to automate versioning and store publishing. To release a new version to the Chrome Web Store and Edge Add-ons, follow this workflow:
 
-1. **Create a Changeset:** In your feature branch, run:
+1.  **Create a Changeset:** Before pushing your feature branch, run the following command in your terminal:
 
-   ```bash
-   yarn changeset
-   ```
+    ```bash
 
-   Follow the prompts to select the impact (major, minor, patch) and provide a description of the changes. This will create a small markdown file in the `.changeset` directory.
+    yarn changeset
 
-2. **Open & Merge your PR:** Push your changes (including the changeset file) and open a PR to `main`. Once merged, a GitHub Action will detect the changeset and automatically create a new PR titled **"Version Packages"**.
+    ```
 
-3. **Merge the Version PR:** Review and merge the "Version Packages" PR. This will:
-   - Bump the version in `package.json` and `manifest.json`.
-   - Update the `CHANGELOG.md`.
-   - Generate new icons if necessary.
-   - Tag the repository.
+    - Follow the interactive prompts to select the appropriate semver bump (major, minor, or patch).
 
-4. **Automatic Publishing:** Once the "Version Packages" PR is merged to `main`, the publishing workflow will trigger, build the extension, and upload it to the Chrome Web Store and Edge Add-ons gallery.
+    - Provide a concise summary of the changes for the changelog.
+
+    - This will generate a new `.md` file in the `.changeset` directory. **Commit this file to your branch.**
+
+2.  **Submit your PR:** Push your changes (including the changeset file) and open a Pull Request to `main`.
+
+3.  **The Versioning PR:** Once your feature PR is merged into `main`, a GitHub Action will automatically detect the changeset and open a new PR titled **"Version Packages"**.
+
+4.  **Merge the Versioning PR:** Merging the "Version Packages" PR into `main` will:
+    - Automatically bump the `version` in `package.json` and `manifest.json`.
+
+    - Update `CHANGELOG.md`.
+
+    - Tag the repository with the new version.
+
+    - **Trigger the Store Upload:** The `publish` workflow will run, building the extension and uploading it to both the Chrome Web Store and Microsoft Edge Add-ons store.
 
 > [!IMPORTANT]
-> Merging a feature PR directly to `main` without a changeset will **not** trigger a store release. You must follow the two-step merge process (Feature PR → Version PR) to publish.
+
+> Merging a feature PR directly into `main` **without** a changeset file will not trigger a store release. Always include a changeset if you want your changes to be published.

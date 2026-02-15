@@ -6,6 +6,8 @@ export default defineConfig({
     environment: 'happy-dom',
     coverage: {
       provider: 'v8',
+      reportsDirectory: 'coverage/vitest',
+      reporter: ['text', 'html', 'json-summary', 'clover'],
       include: ['src/**/*.ts'],
       exclude: [
         'src/**/*.test.ts',

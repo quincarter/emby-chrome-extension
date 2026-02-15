@@ -36,6 +36,20 @@ jobs:
         if: always()
         run: npx tsx scripts/generate-e2e-readme.ts
 
+      - name: Generate coverage badge
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npx tsx scripts/generate-coverage-badges.ts
+
+      - name: Deploy badge to gh-badges branch
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./coverage/badges
+          publish_branch: gh-badges
+          destination_dir: e2e
+          keep_files: true
+
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}

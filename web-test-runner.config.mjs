@@ -6,6 +6,13 @@ export default {
   files: 'src/**/*.test.ts',
   nodeResolve: true,
   browsers: [playwrightLauncher({ product: 'chromium' })],
+  coverage: true,
+  coverageConfig: {
+    reportDir: 'coverage/wtr',
+    reporters: ['lcov', 'json-summary'],
+    include: ['src/components/**/*.ts', 'src/mixins/**/*.ts'],
+    exclude: ['src/**/*.test.ts', 'src/**/*.styles.ts', 'src/**/*.svg.ts'],
+  },
   plugins: [
     esbuildPlugin({
       ts: true,

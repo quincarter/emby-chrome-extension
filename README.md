@@ -4,6 +4,10 @@
 [![Lint](https://github.com/quincarter/emby-chrome-extension/actions/workflows/lint.yml/badge.svg)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/lint.yml)
 [![Build](https://github.com/quincarter/emby-chrome-extension/actions/workflows/build.yml/badge.svg)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/build.yml)
 
+[![Vitest Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/quincarter/emby-chrome-extension/gh-badges/vitest/vitest.json)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/vitest.yml)
+[![WTR Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/quincarter/emby-chrome-extension/gh-badges/wtr/wtr.json)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/wtr.yml)
+[![E2E Pass Rate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/quincarter/emby-chrome-extension/gh-badges/e2e/e2e.json)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/e2e.yml)
+
 # Emby/Jellyfin Media Connector
 
 A Chrome Extension that connects to self-hosted Emby/Jellyfin media servers, detecting movies and TV shows on third-party sites and checking availability on your server.

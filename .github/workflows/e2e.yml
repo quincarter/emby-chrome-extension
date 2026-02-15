@@ -2,9 +2,9 @@ name: Playwright E2E
 
 on:
   push:
-    branches: [main]
+    branches: [main, changeset-release/main]
   pull_request:
-    branches: [main]
+    branches: [main, changeset-release/main]
 
 permissions:
   contents: write

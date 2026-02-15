@@ -57,3 +57,16 @@ export const buildCheckPayload = (
     episodeNumber: media.type === 'episode' ? media.episodeNumber : undefined,
   };
 };
+
+/** JustWatch page type discriminator. */
+export type JustWatchPageType = 'detail' | 'search' | 'other';
+
+/** Determine the JustWatch page type from a URL. */
+export const getJustWatchPageType = (url: string): JustWatchPageType => {
+  const path = new URL(url).pathname;
+  // Check detail first — movie slugs like "search-party" won't false-match
+  if (path.includes('/movie/') || path.includes('/tv-show/')) return 'detail';
+  // Match /search as a standalone path segment (e.g. /us/search)
+  if (/\/search(\/|$)/.test(path)) return 'search';
+  return 'other';
+};

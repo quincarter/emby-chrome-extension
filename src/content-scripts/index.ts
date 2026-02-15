@@ -1,6 +1,6 @@
 import { Option, Effect } from 'effect';
 import { detectMediaOption, identifySite } from './detect-media.js';
-import { buildCheckPayloadEffect } from './content-script-helpers.js';
+import { buildCheckPayloadEffect, getJustWatchPageType } from './content-script-helpers.js';
 import type {
   CheckMediaResponse,
   GetConfigResponse,
@@ -35,6 +35,7 @@ const JELLYFIN_SVG = `<svg width="48" height="48" viewBox="0 0 512 512" fill="no
  */
 const init = async (): Promise<void> => {
   const site = identifySite(window.location.href);
+  console.log('[Media Connector] init: site =', site, ', URL =', window.location.href);
   if (site === 'unknown') return;
 
   if (site === 'trakt') {
@@ -54,14 +55,10 @@ const init = async (): Promise<void> => {
     return;
   }
 
-  // JustWatch: search results page gets per-row provider icons,
-  // title detail pages get a full card in the buybox area
+  // JustWatch is a Nuxt SPA — use a unified handler that adapts to
+  // page-type transitions (search ↔ detail) during client-side navigation.
   if (site === 'justwatch') {
-    if (window.location.pathname.includes('/search')) {
-      initJustWatchSearch();
-    } else {
-      initJustWatch();
-    }
+    initJustWatchSPA();
     return;
   }
 
@@ -745,103 +742,263 @@ const JUSTWATCH_CARD_ID = 'media-connector-justwatch-card';
 const JUSTWATCH_SKELETON_ID = 'media-connector-justwatch-skeleton';
 
 /**
- * JustWatch-specific init.
- * JustWatch is a Vue/Nuxt SPA, so we use a MutationObserver to handle
- * client-side navigations and Vue re-renders (similar to Trakt).
+ * Unified JustWatch SPA handler.
+ * JustWatch is a Nuxt SPA, so client-side navigation changes the URL
+ * without a full page reload. A single debounced MutationObserver routes
+ * between detail-page and search-page behaviors, preventing mutation storms
+ * that can interfere with Vue's rendering cycle.
  *
  * The card is injected before the "buybox-container" — the "Watch Now" /
  * "Where to Watch" streaming offers section.
  */
-const initJustWatch = (): void => {
+const initJustWatchSPA = (): void => {
+  console.log('[Media Connector] JW SPA: initializing, URL =', window.location.href);
   let lastUrl = window.location.href;
-  let injected = false;
-  let detecting = false;
+  let currentPageType: 'detail' | 'search' | 'other' = getJustWatchPageType(lastUrl);
+  console.log('[Media Connector] JW SPA: initial page type =', currentPageType);
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
-  const detect = async (): Promise<void> => {
-    if (detecting || injected) return;
-    detecting = true;
+  // ── Observer (declared early so closures below can reference it) ──
+  let observerConnected = false;
+  const observer = new MutationObserver(() => scheduleMutation());
+
+  const pauseObserver = (): void => {
+    if (observerConnected) {
+      observer.disconnect();
+      observerConnected = false;
+    }
+  };
+
+  const resumeObserver = (): void => {
+    if (!observerConnected) {
+      observer.observe(document.body, { childList: true, subtree: true });
+      observerConnected = true;
+    }
+  };
+
+  // ── Detail-page state ──
+  let detailInjected = false;
+  let detailDetecting = false;
+
+  // ── Search-page state ──
+  let searchProcessing = false;
+  let searchServerLabel = 'Emby';
+  let searchServerType = 'emby';
+
+  const detectDetail = async (): Promise<void> => {
+    console.log(
+      '[Media Connector] JW SPA: detectDetail called, detailDetecting =',
+      detailDetecting,
+      ', detailInjected =',
+      detailInjected,
+    );
+    if (detailDetecting || detailInjected) return;
+    detailDetecting = true;
 
     try {
       const media = tryDetectMedia();
+      console.log('[Media Connector] JW SPA: tryDetectMedia result:', media ?? 'undefined');
       if (!media) return;
 
       const title =
         media.type === 'season' || media.type === 'episode' ? media.seriesTitle : media.title;
-
       const mediaType = media.type === 'movie' ? ('movie' as const) : ('tv' as const);
 
-      console.log('[Media Connector] JustWatch detected media:', {
+      console.log('[Media Connector] JW SPA: detected media:', {
         title,
         mediaType,
         year: media.year,
       });
 
-      // Fetch config for server label
-      const configRes = await sendMessage<GetConfigResponse>({
-        type: 'GET_CONFIG',
-      });
+      const configRes = await sendMessage<GetConfigResponse>({ type: 'GET_CONFIG' });
+      console.log('[Media Connector] JW SPA: config response:', configRes);
       const serverLabel = configRes?.payload.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby';
 
-      // Show skeleton while waiting for Jellyseerr
+      pauseObserver();
       showJustWatchSkeleton(serverLabel);
+      resumeObserver();
+      console.log('[Media Connector] JW SPA: skeleton shown');
 
       const response = await sendMessage<SearchJellyseerrResponse>({
         type: 'SEARCH_JELLYSEERR',
         payload: { query: title, mediaType, year: media.year },
       });
 
-      // Remove skeleton
+      pauseObserver();
       removeJustWatchSkeleton();
 
       if (!response) {
-        console.log('[Media Connector] No response from service worker');
+        console.log('[Media Connector] JW SPA: no response from service worker');
+        resumeObserver();
         return;
       }
 
-      console.log('[Media Connector] Jellyseerr response:', response);
+      console.log('[Media Connector] JW SPA: Jellyseerr response:', response);
       injectJustWatchCard(response, title);
-      injected = true;
+      resumeObserver();
+      console.log(
+        '[Media Connector] JW SPA: card injected, in DOM =',
+        !!document.getElementById(JUSTWATCH_CARD_ID),
+      );
+      detailInjected = true;
     } finally {
-      detecting = false;
+      detailDetecting = false;
     }
   };
 
-  const onMutation = (): void => {
-    const currentUrl = window.location.href;
+  const processSearchRows = async (): Promise<void> => {
+    console.log(
+      '[Media Connector] JW SPA: processSearchRows called, searchProcessing =',
+      searchProcessing,
+    );
+    if (searchProcessing) return;
+    searchProcessing = true;
 
-    // SPA navigation — URL changed, reset and re-detect
-    if (currentUrl !== lastUrl) {
-      lastUrl = currentUrl;
-      injected = false;
-      // Clean up old card/skeleton
-      document.getElementById(JUSTWATCH_CARD_ID)?.remove();
-      document.getElementById(JUSTWATCH_SKELETON_ID)?.remove();
-      detect();
+    try {
+      const configRes = await sendMessage<GetConfigResponse>({ type: 'GET_CONFIG' });
+      searchServerLabel = configRes?.payload.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby';
+      searchServerType = configRes?.payload.serverType ?? 'emby';
+
+      const rows = document.querySelectorAll<HTMLElement>('.title-list-row__row');
+      console.log('[Media Connector] JW SPA: search found', rows.length, 'total rows');
+      let processed = 0;
+      for (const row of rows) {
+        if (
+          row.querySelector(`.${JUSTWATCH_SEARCH_BADGE_CLASS}`) ||
+          row.dataset.mcProcessing === 'true'
+        )
+          continue;
+        processed++;
+        pauseObserver();
+        await processJustWatchSearchRow(row, searchServerLabel, searchServerType);
+        resumeObserver();
+      }
+      console.log('[Media Connector] JW SPA: processed', processed, 'search rows');
+    } finally {
+      searchProcessing = false;
+    }
+  };
+
+  /** Clean up all extension-injected elements. */
+  const cleanupAll = (): void => {
+    pauseObserver();
+    document.getElementById(JUSTWATCH_CARD_ID)?.remove();
+    document.getElementById(JUSTWATCH_SKELETON_ID)?.remove();
+    document.querySelectorAll(`.${JUSTWATCH_SEARCH_BADGE_CLASS}`).forEach((el) => el.remove());
+    detailInjected = false;
+    resumeObserver();
+  };
+
+  let lastMutationRun = 0;
+  const DEBOUNCE_MS = 300;
+  const MAX_WAIT_MS = 1000;
+
+  const scheduleMutation = (): void => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    const elapsed = Date.now() - lastMutationRun;
+    // If we haven't run in over MAX_WAIT_MS, run immediately to avoid
+    // infinite postponement on busy pages (ads, lazy images, analytics).
+    if (elapsed >= MAX_WAIT_MS) {
+      lastMutationRun = Date.now();
+      handleMutation();
       return;
     }
+    debounceTimer = setTimeout(() => {
+      lastMutationRun = Date.now();
+      handleMutation();
+    }, DEBOUNCE_MS);
+  };
 
-    // If we already injected, make sure the card is still in the DOM
-    if (injected) {
-      if (!document.getElementById(JUSTWATCH_CARD_ID)) {
-        injected = false;
-        detect();
+  const handleMutation = (): void => {
+    const currentUrl = window.location.href;
+    const newPageType = getJustWatchPageType(currentUrl);
+
+    // SPA navigation detected — URL changed
+    if (currentUrl !== lastUrl) {
+      console.log(
+        '[Media Connector] JW SPA: URL changed',
+        lastUrl,
+        '→',
+        currentUrl,
+        '(',
+        newPageType,
+        ')',
+      );
+      lastUrl = currentUrl;
+
+      // Page type changed: clean up old content and reset state
+      if (newPageType !== currentPageType) {
+        console.log(
+          '[Media Connector] JW SPA: page type changed',
+          currentPageType,
+          '→',
+          newPageType,
+        );
+        cleanupAll();
+        currentPageType = newPageType;
+      }
+
+      if (newPageType === 'detail') {
+        detailInjected = false;
+        pauseObserver();
+        document.getElementById(JUSTWATCH_CARD_ID)?.remove();
+        document.getElementById(JUSTWATCH_SKELETON_ID)?.remove();
+        resumeObserver();
+        detectDetail();
+      } else if (newPageType === 'search') {
+        processSearchRows();
+      } else {
+        console.log('[Media Connector] JW SPA: "other" page type — skipping');
       }
       return;
     }
 
-    // Haven't detected yet — wait for the buybox anchor to appear
-    const buybox =
-      document.querySelector('.buybox-container') ?? document.getElementById('buybox-anchor');
-    if (buybox) {
-      detect();
+    // Same URL — handle in-page DOM updates
+    if (currentPageType === 'detail') {
+      if (detailInjected) {
+        // Card was removed by a Vue re-render — re-inject
+        if (!document.getElementById(JUSTWATCH_CARD_ID)) {
+          console.log('[Media Connector] JW SPA: card missing from DOM, re-injecting');
+          detailInjected = false;
+          detectDetail();
+        }
+        return;
+      }
+      // Wait for the buybox anchor to appear
+      const buybox =
+        document.querySelector('.buybox-container') ?? document.getElementById('buybox-anchor');
+      if (buybox) {
+        console.log('[Media Connector] JW SPA: buybox found, triggering detection');
+        detectDetail();
+      }
+    } else if (currentPageType === 'search') {
+      // Check for new unprocessed rows (infinite scroll / pagination)
+      const rows = document.querySelectorAll<HTMLElement>('.title-list-row__row');
+      for (const row of rows) {
+        if (
+          !row.querySelector(`.${JUSTWATCH_SEARCH_BADGE_CLASS}`) &&
+          row.dataset.mcProcessing !== 'true'
+        ) {
+          console.log('[Media Connector] JW SPA: new search rows found, processing');
+          processSearchRows();
+          break;
+        }
+      }
     }
   };
 
-  // Try immediately, then observe for Vue renders
-  detect();
+  // Initial detection
+  console.log('[Media Connector] JW SPA: starting initial detection for', currentPageType);
+  if (currentPageType === 'detail') {
+    detectDetail();
+  } else if (currentPageType === 'search') {
+    processSearchRows();
+  }
 
-  const observer = new MutationObserver(() => onMutation());
+  // Start observing
   observer.observe(document.body, { childList: true, subtree: true });
+  observerConnected = true;
+  console.log('[Media Connector] JW SPA: MutationObserver attached');
 };
 
 /**
@@ -992,6 +1149,7 @@ const appendCardToJustWatchPage = (card: HTMLElement): void => {
   // Primary: insert before the buybox container
   const buyboxContainer = document.querySelector<HTMLElement>('.buybox-container');
   if (buyboxContainer) {
+    console.log('[Media Connector] JW SPA: appending card before .buybox-container');
     buyboxContainer.parentElement?.insertBefore(card, buyboxContainer);
     return;
   }
@@ -999,6 +1157,7 @@ const appendCardToJustWatchPage = (card: HTMLElement): void => {
   // Fallback: insert before the buybox anchor element
   const buyboxAnchor = document.getElementById('buybox-anchor');
   if (buyboxAnchor) {
+    console.log('[Media Connector] JW SPA: appending card before #buybox-anchor');
     buyboxAnchor.parentElement?.insertBefore(card, buyboxAnchor);
     return;
   }
@@ -1006,6 +1165,7 @@ const appendCardToJustWatchPage = (card: HTMLElement): void => {
   // Fallback: insert into the title-detail content area
   const titleContent = document.querySelector<HTMLElement>('.title-detail__content');
   if (titleContent) {
+    console.log('[Media Connector] JW SPA: appending card into .title-detail__content');
     titleContent.prepend(card);
     return;
   }
@@ -1013,11 +1173,15 @@ const appendCardToJustWatchPage = (card: HTMLElement): void => {
   // Last resort: insert after the hero details section
   const heroDetails = document.querySelector<HTMLElement>('.title-detail-hero__details');
   if (heroDetails) {
+    console.log('[Media Connector] JW SPA: appending card after .title-detail-hero__details');
     heroDetails.after(card);
     return;
   }
 
   // Absolute fallback: prepend to main content
+  console.log(
+    '[Media Connector] JW SPA: appending card to fallback container (#__layout / main / body)',
+  );
   const main =
     document.querySelector<HTMLElement>('#__layout') ??
     document.querySelector<HTMLElement>('main') ??
@@ -1270,107 +1434,6 @@ const processJustWatchSearchRow = async (
     '- in DOM:',
     document.contains(btn),
   );
-};
-
-/**
- * JustWatch search results page init.
- * Uses a MutationObserver to handle dynamically loaded results and SPA navigations.
- * For each search result row, injects a wide "Play on …" / "Request on …" button
- * below the title link.
- */
-const initJustWatchSearch = (): void => {
-  console.log('[Media Connector] JW Search: initializing search page handler');
-  let lastUrl = window.location.href;
-  let serverLabel = 'Emby';
-  let serverType = 'emby';
-  let processing = false;
-  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
-
-  const processAllRows = async (): Promise<void> => {
-    // Guard against re-entry (our own DOM writes trigger the observer)
-    if (processing) {
-      console.log('[Media Connector] JW Search: skipping — already processing');
-      return;
-    }
-    processing = true;
-
-    try {
-      // Fetch config once for server type
-      const configRes = await sendMessage<GetConfigResponse>({
-        type: 'GET_CONFIG',
-      });
-      serverLabel = configRes?.payload.serverType === 'jellyfin' ? 'Jellyfin' : 'Emby';
-      serverType = configRes?.payload.serverType ?? 'emby';
-
-      const rows = document.querySelectorAll<HTMLElement>('.title-list-row__row');
-
-      console.log('[Media Connector] JW Search: found', rows.length, 'total rows');
-
-      let skipped = 0;
-      let queued = 0;
-      for (const row of rows) {
-        // Skip rows already processed or in-progress
-        if (
-          row.querySelector(`.${JUSTWATCH_SEARCH_BADGE_CLASS}`) ||
-          row.dataset.mcProcessing === 'true'
-        ) {
-          skipped++;
-          continue;
-        }
-        queued++;
-        // Process each row sequentially to avoid overwhelming the API
-        await processJustWatchSearchRow(row, serverLabel, serverType);
-      }
-      console.log('[Media Connector] JW Search: processed', queued, 'rows, skipped', skipped);
-    } finally {
-      processing = false;
-    }
-  };
-
-  const scheduleProcessing = (): void => {
-    // Debounce: wait 300ms after last mutation before processing
-    if (debounceTimer) clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(() => {
-      processAllRows();
-    }, 300);
-  };
-
-  const onMutation = (): void => {
-    const currentUrl = window.location.href;
-
-    // SPA navigation detected
-    if (currentUrl !== lastUrl) {
-      console.log('[Media Connector] JW Search: URL changed to', currentUrl);
-      lastUrl = currentUrl;
-      // If navigated away from search, stop observing
-      if (!currentUrl.includes('/search')) return;
-      scheduleProcessing();
-      return;
-    }
-
-    // Only schedule if there are unprocessed rows
-    const rows = document.querySelectorAll<HTMLElement>('.title-list-row__row');
-    let hasNew = false;
-    for (const row of rows) {
-      if (
-        !row.querySelector(`.${JUSTWATCH_SEARCH_BADGE_CLASS}`) &&
-        row.dataset.mcProcessing !== 'true'
-      ) {
-        hasNew = true;
-        break;
-      }
-    }
-    if (hasNew) {
-      scheduleProcessing();
-    }
-  };
-
-  // Initial processing
-  processAllRows();
-
-  // Observe for dynamically loaded rows (infinite scroll, pagination, SPA nav)
-  const observer = new MutationObserver(() => onMutation());
-  observer.observe(document.body, { childList: true, subtree: true });
 };
 
 const initSearchEngineSidebar = async (): Promise<void> => {

@@ -11,7 +11,6 @@ export default defineConfig({
         popup: resolve(__dirname, 'popup.html'),
         sandbox: resolve(__dirname, 'sandbox.html'),
         'service-worker': resolve(__dirname, 'src/service-worker/index.ts'),
-        'content-script': resolve(__dirname, 'src/content-scripts/index.ts'),
       },
       output: {
         entryFileNames: '[name].js',

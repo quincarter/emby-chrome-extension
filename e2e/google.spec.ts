@@ -10,7 +10,7 @@ test.describe('Google Search — sidebar injection', () => {
 
     const sidebar = page.locator('#media-connector-sidebar');
     await expect(sidebar).toBeVisible();
-    await expect(sidebar).toContainText('Media Server Connector');
+    await expect(sidebar).toContainText("I've got this!");
     await expect(sidebar).toContainText('The Matrix');
     await expect(sidebar).toContainText('✓ Available');
   });

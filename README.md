@@ -8,15 +8,20 @@
 [![WTR Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/quincarter/emby-chrome-extension/gh-badges/wtr/wtr.json)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/wtr.yml)
 [![E2E Pass Rate](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/quincarter/emby-chrome-extension/gh-badges/e2e/e2e.json)](https://github.com/quincarter/emby-chrome-extension/actions/workflows/e2e.yml)
 
-# Emby/Jellyfin Media Connector
+# I've got this! (Media Connector)
 
-A Chrome Extension that connects to self-hosted Emby/Jellyfin media servers, detecting movies and TV shows on third-party sites and checking availability on your server.
+"I've got this!" is a powerful browser extension designed for self-hosted media enthusiasts. It seamlessly bridges the gap between popular media discovery sites and your personal Emby or Jellyfin server.
 
-## Features
+As you browse titles on IMDb, Trakt, Netflix, Amazon Prime Video, or JustWatch, the extension automatically detects the media and displays its availability status directly on the page. If a movie or show is missing from your collection, you can submit a request via Jellyseerr with a single click.
 
-- Detects media on IMDb, Trakt, Netflix, Amazon, Google/Bing Search
-- Checks availability on your Emby or Jellyfin server
-- Request missing media via Jellyseerr integration
+## Key Features
+
+- **Real-time Detection:** Automatically identifies movies, series, seasons, and episodes on supported platforms.
+- **Deep Integration:** Injects native-feeling UI elements (badges, sidebars, and buttons) into IMDb, Trakt, JustWatch, Netflix, and Amazon.
+- **Search Engine Enhancement:** Adds a dedicated media status sidebar to Google and Bing search results.
+- **One-Click Requests:** Integrated with Jellyseerr/Overseerr for instant media requests when content isn't found on your server.
+- **Smart Deep Linking:** Jump directly from a discovery site to the playback page on your own Emby or Jellyfin instance.
+- **Mobile Optimized:** Full support for Microsoft Edge on Android and iOS with touch-friendly controls.
 
 ### Screenshots
 

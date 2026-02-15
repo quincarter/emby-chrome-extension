@@ -11,7 +11,7 @@ test.describe('JustWatch — content script injection', () => {
 
       const card = page.locator('#media-connector-justwatch-card');
       await expect(card).toBeVisible();
-      await expect(card).toContainText('Media Server Connector');
+      await expect(card).toContainText("I've got this!");
       await expect(card).toContainText('The Matrix');
       await expect(card).toContainText('✓ Available');
     });

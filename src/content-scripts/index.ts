@@ -525,7 +525,7 @@ const showSkeleton = (serverLabel: string): void => {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">
       <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
       <div>
-        <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+        <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
         <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr &middot; ${serverLabel}</div>
       </div>
     </div>
@@ -636,7 +636,7 @@ const showImdbSkeleton = (serverLabel: string): void => {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">
       <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
       <div>
-        <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+        <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
         <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr &middot; ${serverLabel}</div>
       </div>
     </div>
@@ -708,7 +708,7 @@ const injectImdbCard = (response: SearchJellyseerrResponse, queryTitle: string):
   header.innerHTML = `
     <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
     <div>
-      <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+      <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
       <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr · ${serverLabel}</div>
     </div>
   `;
@@ -1088,7 +1088,7 @@ const showJustWatchSkeleton = (serverLabel: string): void => {
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,0.08);">
       <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
       <div>
-        <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+        <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
         <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr &middot; ${serverLabel}</div>
       </div>
     </div>
@@ -1157,7 +1157,7 @@ const injectJustWatchCard = (response: SearchJellyseerrResponse, queryTitle: str
   header.innerHTML = `
     <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
     <div>
-      <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+      <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
       <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr · ${serverLabel}</div>
     </div>
   `;
@@ -1603,7 +1603,7 @@ const injectSidebar = (response: SearchJellyseerrResponse, queryTitle: string): 
   header.innerHTML = `
     <div style="width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;">${iconHtml}</div>
     <div>
-      <div style="font-weight:700;font-size:15px;color:#d0bcff;">Media Server Connector</div>
+      <div style="font-weight:700;font-size:15px;color:#d0bcff;">I've got this!</div>
       <div style="font-size:11px;color:#a89cc0;margin-top:2px;">Powered by Jellyseerr · ${serverLabel}</div>
     </div>
   `;

@@ -283,7 +283,7 @@ export class PopupView extends ComponentMixin(LitElement) {
       <div class="header" part="header">
         <div class="header-icon">${combinedIcon(28)}</div>
         <div>
-          <h1>Media Server Connector</h1>
+          <h1>I've got this!</h1>
           <p>Configure your server connection</p>
         </div>
       </div>
@@ -516,7 +516,7 @@ export class PopupView extends ComponentMixin(LitElement) {
   private _renderFooter() {
     return html`
       <div class="footer">
-        <p>Media Server Connector v0.1.0</p>
+        <p>I've got this! v0.1.0</p>
       </div>
     `;
   }

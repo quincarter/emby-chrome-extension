@@ -35,7 +35,7 @@ describe('popup-view', () => {
 
     const header = el.shadowRoot?.querySelector('.header h1');
     expect(header).to.exist;
-    expect(header?.textContent).to.equal('Media Server Connector');
+    expect(header?.textContent).to.equal("I've got this!");
   });
 
   it('renders server type toggle with emby and jellyfin buttons', async () => {

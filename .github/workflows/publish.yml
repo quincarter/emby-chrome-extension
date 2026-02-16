@@ -47,6 +47,9 @@ jobs:
         if: steps.changesets.outputs.published == 'true' || contains(github.event.head_commit.message, 'Version Packages')
         run: yarn pack
 
+      - name: List files (Debug)
+        run: ls -R
+
       - name: Check Secrets
         id: check_secrets
         run: |

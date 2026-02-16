@@ -45,10 +45,15 @@ jobs:
       # Build, Zip, Release and Upload if changesets published OR if we just merged a version bump
       - name: Build and Pack extension
         if: steps.changesets.outputs.published == 'true' || contains(github.event.head_commit.message, 'Version Packages')
-        run: yarn pack
+        run: |
+          yarn build:extension
+          zip -r extension.zip dist/
+          echo "ZIP_PATH=$GITHUB_WORKSPACE/extension.zip" >> $GITHUB_ENV
 
       - name: List files (Debug)
-        run: ls -R
+        run: |
+          ls -lh extension.zip || echo "ZIP NOT FOUND"
+          pwd
 
       - name: Check Secrets
         id: check_secrets
@@ -81,7 +86,7 @@ jobs:
         with:
           # Use the version from Changesets if available, otherwise use the one from package.json
           tag_name: ${{ fromJson(steps.changesets.outputs.publishedPackages)[0].version && format('v{0}', fromJson(steps.changesets.outputs.publishedPackages)[0].version) || format('v{0}', steps.pkg_version.outputs.version) }}
-          files: extension.zip
+          files: ${{ env.ZIP_PATH }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +104,7 @@ jobs:
             --client-id "$CLIENT_ID" \
             --client-secret "$CLIENT_SECRET" \
             --refresh-token "$REFRESH_TOKEN" \
-            --source extension.zip \
+            --source "$ZIP_PATH" \
             --auto-publish
 
       - name: Upload to Edge Add-ons
@@ -109,4 +114,4 @@ jobs:
           product-id: ${{ secrets.EDGE_PRODUCT_ID }}
           client-id: ${{ secrets.EDGE_CLIENT_ID }}
           api-key: ${{ secrets.EDGE_CLIENT_SECRET }}
-          zip-path: extension.zip
+          zip-path: ${{ env.ZIP_PATH }}
